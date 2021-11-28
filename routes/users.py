@@ -4,6 +4,7 @@ from passlib.context import CryptContext
 from utilis import hash
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
+import schemas
 from sqlalchemy.exc import IntegrityError
 from starlette.responses import Response
 from database.database import get_db
@@ -28,55 +29,6 @@ class Myenum(str, Enum):
 	clinicogeral = 'Clinico Geral'
 	
 
-class MedicoEntry(BaseModel):
-	email: EmailStr
-	password: str
-	aceite: bool
-	name: str
-	sobrenome: str
-	especialidade: str
-	crm: str
-	endereco_principal: str
-	pcd: bool
-	atendimento_online: bool
-	atendimento_presencial: bool
-	phone: int
-	instagram: Optional[str]
-	site: Optional[str]
-	descript: str
-
-class MedicoResponse(BaseModel):
-	email: EmailStr
-	aceite: bool
-	name: str
-	sobrenome: str
-	especialidade: str
-	crm: str
-	endereco_principal: str
-	pcd: bool
-	atendimento_online: bool
-	atendimento_presencial: bool
-	phone: int
-	instagram: str
-	site: str
-	descript: str
-
-
-class UpdateMedico(BaseModel):
-
-	email: Optional[EmailStr]
-	password: Optional[str]
-	name: Optional[str]
-	sobrenome: Optional[str]
-	especialidade: Optional[str]
-	endereco_principal: Optional[str]
-	pcd: Optional[bool]
-	atendimento_online: Optional[bool]
-	atendimento_presencial: Optional[bool]
-	phone: Optional[int]
-	instagram: Optional[str]
-	site: Optional[str]
-	descript: Optional[str]
 
 #----------GET--------------
 @router.get("/users")
@@ -87,7 +39,7 @@ def list_Users(db: Session = Depends(get_db)):
 
 #--------------POST----------
 @router.post("/users", status_code=201)
-def create_Users(medico:MedicoEntry, db: Session = Depends(get_db)):
+def create_Users(medico:schemas.MedicoEntry, db: Session = Depends(get_db)):
 	found = False
 	espec = medico.especialidade.lower().replace(" ", "")
 	for keys in Myenum:
@@ -99,7 +51,6 @@ def create_Users(medico:MedicoEntry, db: Session = Depends(get_db)):
 		raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, 
 									detail= {'message': 'Especialidade não encontrada'})
 
-
 	psw_hashed = hash(medico.password)
 	medico.password = psw_hashed
 	new_medico = models.Medicos(**medico.dict())
@@ -107,7 +58,9 @@ def create_Users(medico:MedicoEntry, db: Session = Depends(get_db)):
 	try:
 		db.commit()
 		db.refresh(new_medico)
-		return {'data': new_medico}
+		return_med = medico.dict()
+		return_med.pop('password')
+		return {'data': return_med}
 	except IntegrityError as err:
 		raise HTTPException(status_code=status.HTTP_409_CONFLICT,
 							detail={'message': err.args})
@@ -125,7 +78,13 @@ def get_by_crm(crm: str, db: Session= Depends(get_db)):
 
 	return {'Medico': med}
 
-#----------DELETE--------
+#---------------Get- By Especialidade -----------------
+@router.get('/especialistas/{especialidade}')
+def get_by_especialidade(espec:str, db: Session= Depends(get_db)):
+	request = db.query(models.Medicos).filter(models.Medicos.especialidade == espec).all()
+	return request
+
+#----------DELETE------------
 
 @router.delete("/users/{crm}", status_code=204)
 def delete_medico(crm: str, db: Session= Depends(get_db)):
@@ -142,7 +101,7 @@ def delete_medico(crm: str, db: Session= Depends(get_db)):
 
 #--------PATCH-----
 @router.patch("/users/{crm}")
-def update_User(crm: str, med: UpdateMedico, db: Session= Depends(get_db),
+def update_User(crm: str, med: schemas.UpdateMedico, db: Session= Depends(get_db),
 	current_user: int= Depends(current_User)):
 
 	if current_user.crm != crm:
