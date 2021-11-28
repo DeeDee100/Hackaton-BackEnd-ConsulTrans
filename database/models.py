@@ -1,6 +1,7 @@
-from sqlalchemy.sql.sqltypes import Boolean
+
+from sqlalchemy.sql.schema import ForeignKey
 from .database import Base
-from sqlalchemy import Column, Integer, String,Boolean
+from sqlalchemy import Column, Integer, String, Boolean, Float
 from sqlalchemy.orm import relationship
 
 
@@ -22,4 +23,13 @@ class Medicos(Base):
 	descript = Column(String, nullable=True)
 	phone = Column(Integer, nullable=False)
 	aceite = Column(Boolean, nullable= False)
+	avaliacoes = relationship("Avaliacoes")
 
+class Avaliacoes(Base):
+	__tablename__ = "avaliacoes"
+
+	id = Column(Integer, primary_key=True)
+	crm = Column(String, ForeignKey('medicos.crm'))
+	total_feedback = Column(Float, nullable=False)
+	num_feedback = Column(Integer, nullable=False)
+	media_feedback = Column(Float, nullable=False)
