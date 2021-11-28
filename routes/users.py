@@ -1,13 +1,16 @@
 from enum import Enum
-from os import name
 from typing import Optional
+from passlib.context import CryptContext
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.exc import IntegrityError
 from starlette.responses import Response
 from database.database import get_db
 from sqlalchemy.orm.session import Session
 from database import models
+
+
+pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
 router = APIRouter(
@@ -23,10 +26,24 @@ class Myenum(str, Enum):
 	clinicogeral = 'Clinico Geral'
 	
 
-
 class MedicoEntry(BaseModel):
-	email: str
+	email: EmailStr
 	password: str
+	aceite: bool
+	name: str
+	sobrenome: str
+	especialidade: str
+	crm: str
+	endereco_principal: str
+	pcd: bool
+	atendimento: str
+	phone: int
+	instagram: Optional[str]
+	site: Optional[str]
+	descript: str
+
+class MedicoResponse(BaseModel):
+	email: EmailStr
 	aceite: bool
 	name: str
 	sobrenome: str
@@ -43,7 +60,7 @@ class MedicoEntry(BaseModel):
 
 class UpdateMedico(BaseModel):
 
-	email: Optional[str]
+	email: Optional[EmailStr]
 	password: Optional[str]
 	aceite: Optional[bool]
 	name: Optional[str]
@@ -79,6 +96,9 @@ def create_Users(medico:MedicoEntry, db: Session = Depends(get_db)):
 		raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, 
 									detail= {'message': 'Especialidade não encontrada'})
 
+
+	psw_hashed = pwd_context.hash(medico.password)
+	medico.password = psw_hashed
 	new_medico = models.Medicos(**medico.dict())
 	db.add(new_medico)
 	try:
@@ -89,7 +109,8 @@ def create_Users(medico:MedicoEntry, db: Session = Depends(get_db)):
 		raise HTTPException(status_code=status.HTTP_409_CONFLICT,
 							detail={'message': err.args})
 
-#-----------GET-By-CRM
+
+#-----------GET-By-CRM-----
 @router.get("/users/{crm}")
 def get_by_crm(crm: str, db: Session= Depends(get_db)):
 	requested = db.query(models.Medicos).filter(models.Medicos.crm == crm).first()
