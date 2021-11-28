@@ -1,11 +1,13 @@
 from enum import Enum
 from typing import Optional
 from passlib.context import CryptContext
+from utilis import hash
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.exc import IntegrityError
 from starlette.responses import Response
 from database.database import get_db
+from OAuth2.OAuth2 import current_User
 from sqlalchemy.orm.session import Session
 from database import models
 
@@ -14,7 +16,7 @@ pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
 router = APIRouter(
-	tags=['Users - Medicos']
+	tags=['Medicos']
 )
 
 class Myenum(str, Enum):
@@ -36,7 +38,8 @@ class MedicoEntry(BaseModel):
 	crm: str
 	endereco_principal: str
 	pcd: bool
-	atendimento: str
+	atendimento_online: bool
+	atendimento_presencial: bool
 	phone: int
 	instagram: Optional[str]
 	site: Optional[str]
@@ -51,7 +54,8 @@ class MedicoResponse(BaseModel):
 	crm: str
 	endereco_principal: str
 	pcd: bool
-	atendimento: Optional[str]
+	atendimento_online: bool
+	atendimento_presencial: bool
 	phone: int
 	instagram: str
 	site: str
@@ -62,14 +66,13 @@ class UpdateMedico(BaseModel):
 
 	email: Optional[EmailStr]
 	password: Optional[str]
-	aceite: Optional[bool]
 	name: Optional[str]
 	sobrenome: Optional[str]
 	especialidade: Optional[str]
-	crm: Optional[str]
 	endereco_principal: Optional[str]
 	pcd: Optional[bool]
-	atendimento: Optional[str]
+	atendimento_online: Optional[bool]
+	atendimento_presencial: Optional[bool]
 	phone: Optional[int]
 	instagram: Optional[str]
 	site: Optional[str]
@@ -97,7 +100,7 @@ def create_Users(medico:MedicoEntry, db: Session = Depends(get_db)):
 									detail= {'message': 'Especialidade não encontrada'})
 
 
-	psw_hashed = pwd_context.hash(medico.password)
+	psw_hashed = hash(medico.password)
 	medico.password = psw_hashed
 	new_medico = models.Medicos(**medico.dict())
 	db.add(new_medico)
@@ -139,7 +142,12 @@ def delete_medico(crm: str, db: Session= Depends(get_db)):
 
 #--------PATCH-----
 @router.patch("/users/{crm}")
-def update_User(crm: str, med: UpdateMedico, db: Session= Depends(get_db)):
+def update_User(crm: str, med: UpdateMedico, db: Session= Depends(get_db),
+	current_user: int= Depends(current_User)):
+
+	if current_user.crm != crm:
+		return "crm diferente"
+	
 	user_query = db.query(models.Medicos).filter(models.Medicos.crm == crm)
 	user_exist = user_query.first()
 
@@ -147,18 +155,28 @@ def update_User(crm: str, med: UpdateMedico, db: Session= Depends(get_db)):
 
 	for key in medico_entry:
 		if medico_entry[key] != None:
-				pass
+				if key == 'password':
+					hashed = hash(medico_entry[key])
+					medico_entry[key] = hashed
 		else:
 			if key == 'name':
 				medico_entry[key] = user_exist.name
+			if key == 'sobrenome':
+				medico_entry[key] = user_exist.sobrenome
 			elif key == 'email':
 				medico_entry[key] = user_exist.email
-			elif key == 'estado':
-				medico_entry[key] = user_exist.estado
+			elif key == 'password':
+				medico_entry[key] = user_exist.password
+			elif key == 'instagram':
+				medico_entry[key] = user_exist.instagram
 			elif key == 'especialidade':
 				medico_entry[key] = user_exist.especialidade
-			elif key == 'endereco_opcional':
-				medico_entry[key] = user_exist.endereco_opcional
+			elif key == 'site':
+				medico_entry[key] = user_exist.site
+			elif key == 'atendimento_presencial':
+				medico_entry[key] = user_exist.atendimento_presencial
+			elif key == 'atendimento_online':
+				medico_entry[key] = user_exist.atendimento_online
 			elif key == 'endereco_principal':
 				medico_entry[key] = user_exist.endereco_principal
 			elif key == 'pcd':
