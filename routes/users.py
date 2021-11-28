@@ -1,9 +1,7 @@
-from enum import Enum
-from typing import Optional
+
 from passlib.context import CryptContext
-from utilis import hash
+import utilis
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr
 import schemas
 from sqlalchemy.exc import IntegrityError
 from starlette.responses import Response
@@ -12,22 +10,9 @@ from OAuth2.OAuth2 import current_User
 from sqlalchemy.orm.session import Session
 from database import models
 
-
-pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-
-
 router = APIRouter(
 	tags=['Medicos']
 )
-
-class Myenum(str, Enum):
-	cardiologia = 'Cardiologia'
-	ginecologia = 'Ginecologia'
-	psicologia = 'Psicologia'
-	urologia = 'Urologia'
-	cirurgiaoplastico = "Cirurgião plástico"
-	clinicogeral = 'Clinico Geral'
-	
 
 
 #----------GET--------------
@@ -41,17 +26,12 @@ def list_Users(db: Session = Depends(get_db)):
 @router.post("/users", status_code=201)
 def create_Users(medico:schemas.MedicoEntry, db: Session = Depends(get_db)):
 	found = False
-	espec = medico.especialidade.lower().replace(" ", "")
-	for keys in Myenum:
-		if espec == keys.name:
-			medico.especialidade = keys.value
-			found = True
 
 	if found != True:
 		raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, 
 									detail= {'message': 'Especialidade não encontrada'})
 
-	psw_hashed = hash(medico.password)
+	psw_hashed = utilis.hash(medico.password)
 	medico.password = psw_hashed
 	new_medico = models.Medicos(**medico.dict())
 	db.add(new_medico)
