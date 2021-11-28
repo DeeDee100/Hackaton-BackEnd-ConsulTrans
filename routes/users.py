@@ -14,15 +14,16 @@ router = APIRouter(
 	tags=['Medicos']
 )
 
+#-------Metodos CRUD--------
 
-#----------GET--------------
+#---------------GET-----------------
 @router.get("/users")
 def list_Users(db: Session = Depends(get_db)):
 	users = db.query(models.Medicos).all()
 	return {'data': users}
 
 
-#--------------POST----------
+#----------------POST----------------
 @router.post("/users", status_code=201)
 def create_Users(medico:schemas.MedicoEntry, db: Session = Depends(get_db)):
 	found = False
@@ -46,7 +47,7 @@ def create_Users(medico:schemas.MedicoEntry, db: Session = Depends(get_db)):
 							detail={'message': err.args})
 
 
-#-----------GET-By-CRM-----
+#-------------------GET-BY-CRM----------------
 @router.get("/users/{crm}")
 def get_by_crm(crm: str, db: Session= Depends(get_db)):
 	requested = db.query(models.Medicos).filter(models.Medicos.crm == crm).first()
@@ -58,13 +59,13 @@ def get_by_crm(crm: str, db: Session= Depends(get_db)):
 
 	return {'Medico': med}
 
-#---------------Get- By Especialidade -----------------
+#------------------Get-By-Especialidade -----------------
 @router.get('/especialistas/{especialidade}')
 def get_by_especialidade(espec:str, db: Session= Depends(get_db)):
 	request = db.query(models.Medicos).filter(models.Medicos.especialidade == espec).all()
 	return request
 
-#----------DELETE------------
+#--------------------DELETE----------------------
 
 @router.delete("/users/{crm}", status_code=204)
 def delete_medico(crm: str, db: Session= Depends(get_db)):
@@ -79,13 +80,14 @@ def delete_medico(crm: str, db: Session= Depends(get_db)):
 	return Response(status_code=204)
 
 
-#--------PATCH-----
-@router.patch("/users/{crm}")
+#---------------------PATCH-------------------------
+
+@router.patch("/users/{crm}", status_code=status.HTTP_202_ACCEPTED)
 def update_User(crm: str, med: schemas.UpdateMedico, db: Session= Depends(get_db),
 	current_user: int= Depends(current_User)):
 
 	if current_user.crm != crm:
-		return "crm diferente"
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={'message': 'Operação não autorizada'})
 	
 	user_query = db.query(models.Medicos).filter(models.Medicos.crm == crm)
 	user_exist = user_query.first()

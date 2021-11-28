@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
+#-------Modelos de dados usados ------
 
 class MedicoEntry(BaseModel):
 	email: EmailStr

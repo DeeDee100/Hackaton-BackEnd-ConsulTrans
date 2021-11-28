@@ -5,6 +5,8 @@ from sqlalchemy import Column, Integer, String, Boolean, Float
 from sqlalchemy.orm import relationship
 
 
+#----regras das tabelas que estarão no banco de dados-----
+
 class Medicos(Base):
 	__tablename__ = "medicos"
 
