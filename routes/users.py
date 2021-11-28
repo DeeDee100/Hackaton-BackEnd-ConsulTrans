@@ -1,21 +1,18 @@
 from enum import Enum
+from os import name
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
+from starlette.responses import Response
 from database.database import get_db
 from sqlalchemy.orm.session import Session
 from database import models
 
 
 router = APIRouter(
-	tags=['Users']
+	tags=['Users - Medicos']
 )
-
-#lista_especialidade = (
-# 'ginecologia', 'endócrinologista',
-# 'psicologia', 'Clinico Geral',
-# 'Cirurgião plástico', 'Urologia')
 
 class Myenum(str, Enum):
 	cardiologia = 'Cardiologia'
@@ -28,25 +25,47 @@ class Myenum(str, Enum):
 
 
 class MedicoEntry(BaseModel):
-
-	crm: str
-	name: str
 	email: str
-	estado: str
-	especialidade: str
-	endereco_principal: str
-	endereco_opcional: Optional[str]
-	pcd: bool
-	descript: str
-	phone: int
+	password: str
 	aceite: bool
+	name: str
+	sobrenome: str
+	especialidade: str
+	crm: str
+	endereco_principal: str
+	pcd: bool
+	atendimento: Optional[str]
+	phone: int
+	instagram: str
+	site: str
+	descript: str
 
 
+class UpdateMedico(BaseModel):
+
+	email: Optional[str]
+	password: Optional[str]
+	aceite: Optional[bool]
+	name: Optional[str]
+	sobrenome: Optional[str]
+	especialidade: Optional[str]
+	crm: Optional[str]
+	endereco_principal: Optional[str]
+	pcd: Optional[bool]
+	atendimento: Optional[str]
+	phone: Optional[int]
+	instagram: Optional[str]
+	site: Optional[str]
+	descript: Optional[str]
+
+#----------GET--------------
 @router.get("/users")
 def list_Users(db: Session = Depends(get_db)):
 	users = db.query(models.Medicos).all()
 	return {'data': users}
 
+
+#--------------POST----------
 @router.post("/users", status_code=201)
 def create_Users(medico:MedicoEntry, db: Session = Depends(get_db)):
 	found = False
@@ -70,6 +89,7 @@ def create_Users(medico:MedicoEntry, db: Session = Depends(get_db)):
 		raise HTTPException(status_code=status.HTTP_409_CONFLICT,
 							detail={'message': err.args})
 
+#-----------GET-By-CRM
 @router.get("/users/{crm}")
 def get_by_crm(crm: str, db: Session= Depends(get_db)):
 	requested = db.query(models.Medicos).filter(models.Medicos.crm == crm).first()
@@ -81,3 +101,53 @@ def get_by_crm(crm: str, db: Session= Depends(get_db)):
 
 	return {'Medico': med}
 
+#----------DELETE--------
+
+@router.delete("/users/{crm}", status_code=204)
+def delete_medico(crm: str, db: Session= Depends(get_db)):
+	requested = db.query(models.Medicos).filter(models.Medicos.crm == crm).first()
+
+	if not requested:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+					detail=f"Médico com crm: {crm} nao encontrado")
+
+	db.delete(requested)
+	db.commit()
+	return Response(status_code=204)
+
+
+#--------PATCH-----
+@router.patch("/users/{crm}")
+def update_User(crm: str, med: UpdateMedico, db: Session= Depends(get_db)):
+	user_query = db.query(models.Medicos).filter(models.Medicos.crm == crm)
+	user_exist = user_query.first()
+
+	medico_entry = med.dict()
+
+	for key in medico_entry:
+		if medico_entry[key] != None:
+				pass
+		else:
+			if key == 'name':
+				medico_entry[key] = user_exist.name
+			elif key == 'email':
+				medico_entry[key] = user_exist.email
+			elif key == 'estado':
+				medico_entry[key] = user_exist.estado
+			elif key == 'especialidade':
+				medico_entry[key] = user_exist.especialidade
+			elif key == 'endereco_opcional':
+				medico_entry[key] = user_exist.endereco_opcional
+			elif key == 'endereco_principal':
+				medico_entry[key] = user_exist.endereco_principal
+			elif key == 'pcd':
+				medico_entry[key] = user_exist.pcd
+			elif key == 'descript':
+				medico_entry[key] = user_exist.descript
+			elif key == 'phone':
+				medico_entry[key] = user_exist.phone
+
+	user_query.update(medico_entry, synchronize_session=False)
+	db.commit()
+
+	return {'message': ' updated'}

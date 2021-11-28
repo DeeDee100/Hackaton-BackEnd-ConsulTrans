@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from database import models
-from database.database import engine, get_db
-from sqlalchemy.orm.session import Session
+from database.database import engine
 from routes import users
 
 app = FastAPI()
