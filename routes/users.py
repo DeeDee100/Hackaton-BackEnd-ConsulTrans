@@ -1,5 +1,4 @@
 
-from passlib.context import CryptContext
 import utilis
 from fastapi import APIRouter, Depends, HTTPException, status
 import schemas
@@ -26,12 +25,6 @@ def list_Users(db: Session = Depends(get_db)):
 #----------------POST----------------
 @router.post("/users", status_code=201)
 def create_Users(medico:schemas.MedicoEntry, db: Session = Depends(get_db)):
-	found = False
-
-	if found != True:
-		raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, 
-									detail= {'message': 'Especialidade não encontrada'})
-
 	psw_hashed = utilis.hash(medico.password)
 	medico.password = psw_hashed
 	new_medico = models.Medicos(**medico.dict())
@@ -60,9 +53,9 @@ def get_by_crm(crm: str, db: Session= Depends(get_db)):
 	return {'Medico': med}
 
 #------------------Get-By-Especialidade -----------------
-@router.get('/especialistas/{especialidade}')
-def get_by_especialidade(espec:str, db: Session= Depends(get_db)):
-	request = db.query(models.Medicos).filter(models.Medicos.especialidade == espec).all()
+@router.get('/especialistas/{specialty}')
+def get_by_specialty(espec:str, db: Session= Depends(get_db)):
+	request = db.query(models.Medicos).filter(models.Medicos.specialty == espec).all()
 	return request
 
 #--------------------DELETE----------------------
@@ -102,24 +95,24 @@ def update_User(crm: str, med: schemas.UpdateMedico, db: Session= Depends(get_db
 		else:
 			if key == 'name':
 				medico_entry[key] = user_exist.name
-			if key == 'sobrenome':
-				medico_entry[key] = user_exist.sobrenome
+			if key == 'last_name':
+				medico_entry[key] = user_exist.last_name
 			elif key == 'email':
 				medico_entry[key] = user_exist.email
 			elif key == 'password':
 				medico_entry[key] = user_exist.password
 			elif key == 'instagram':
 				medico_entry[key] = user_exist.instagram
-			elif key == 'especialidade':
-				medico_entry[key] = user_exist.especialidade
+			elif key == 'specialty':
+				medico_entry[key] = user_exist.specialty
 			elif key == 'site':
 				medico_entry[key] = user_exist.site
 			elif key == 'atendimento_presencial':
 				medico_entry[key] = user_exist.atendimento_presencial
 			elif key == 'atendimento_online':
 				medico_entry[key] = user_exist.atendimento_online
-			elif key == 'endereco_principal':
-				medico_entry[key] = user_exist.endereco_principal
+			elif key == 'address':
+				medico_entry[key] = user_exist.address
 			elif key == 'pcd':
 				medico_entry[key] = user_exist.pcd
 			elif key == 'descript':

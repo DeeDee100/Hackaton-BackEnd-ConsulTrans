@@ -8,10 +8,10 @@ class MedicoEntry(BaseModel):
 	password: str
 	aceite: bool
 	name: str
-	sobrenome: str
-	especialidade: str
+	last_name: str
+	specialty: str
 	crm: str
-	endereco_principal: str
+	address: str
 	pcd: bool
 	atendimento_online: bool
 	atendimento_presencial: bool
@@ -26,9 +26,9 @@ class UpdateMedico(BaseModel):
 	email: Optional[EmailStr]
 	password: Optional[str]
 	name: Optional[str]
-	sobrenome: Optional[str]
-	especialidade: Optional[str]
-	endereco_principal: Optional[str]
+	last_name: Optional[str]
+	specialty: Optional[str]
+	address: Optional[str]
 	pcd: Optional[bool]
 	atendimento_online: Optional[bool]
 	atendimento_presencial: Optional[bool]
@@ -36,7 +36,6 @@ class UpdateMedico(BaseModel):
 	instagram: Optional[str]
 	site: Optional[str]
 	descript: Optional[str]
-
 
 class Token(BaseModel):
 	access_token: str
